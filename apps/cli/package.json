@@ -1,0 +1,16 @@
+{
+  "name": "@relay/cli",
+  "version": "0.1.0",
+  "type": "module",
+  "bin": { "relay": "dist/index.js" },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "relay": "tsx src/index.ts"
+  },
+  "dependencies": {
+    "@relay/sdk": "0.1.0",
+    "commander": "^14.0.0"
+  }
+}
+
