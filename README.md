@@ -6,6 +6,11 @@ Relay is a working Phase 1 MVP for persistent identity and realtime communicatio
 
 `Relay` is an internal codename, not a researched public product name.
 
+The root [`AGENTS.md`](./AGENTS.md) can be copied into a consumer application's
+repository to guide a coding agent through analyzing that app and adding a
+visible, top-right Relay sign-in experience backed by the SDK or development
+mock.
+
 ## What is implemented
 
 - Email/password registration and login with Argon2id password hashing
