@@ -8,11 +8,37 @@ export interface RelayClientOptions {
   onTokens?: (tokens: AuthTokens) => void | Promise<void>;
 }
 
+export interface RealtimeConnection {
+  close(code?: number, reason?: string): void;
+  on(event: "error", listener: (error: Error) => void): this;
+}
+
+export interface MultiplayerClientContract {
+  signup(input: { username: string; displayName: string; email: string; password: string }): Promise<AuthResult>;
+  login(email: string, password: string): Promise<AuthResult>;
+  refresh(): Promise<AuthTokens>;
+  logout(): Promise<void>;
+  me(): Promise<UserView>;
+  user(username: string): Promise<UserView>;
+  createApp(name: string, slug?: string): Promise<ApplicationView>;
+  apps(): Promise<ApplicationView[]>;
+  members(appId: string): Promise<Array<{ user: UserView; role: string; joinedAt: string }>>;
+  invite(appId: string, username: string): Promise<{ id: string }>;
+  invitations(): Promise<Array<{ id: string; application: ApplicationView; createdAt: string }>>;
+  acceptInvitation(id: string): Promise<{ applicationId: string }>;
+  conversations(appId: string): Promise<ConversationView[]>;
+  direct(appId: string, username: string): Promise<ConversationView>;
+  createGroup(appId: string, name: string, usernames: string[]): Promise<ConversationView>;
+  messages(conversationId: string, limit?: number): Promise<MessageView[]>;
+  sendMessage(conversationId: string, body: string): Promise<MessageView>;
+  realtime(onEvent: (event: RealtimeEvent) => void): RealtimeConnection;
+}
+
 export class RelayError extends Error {
   constructor(public readonly status: number, message: string) { super(message); }
 }
 
-export class MultiplayerClient {
+export class MultiplayerClient implements MultiplayerClientContract {
   private accessToken?: string;
   private refreshToken?: string;
   private readonly baseUrl: string;
@@ -88,7 +114,7 @@ export class MultiplayerClient {
   messages = (conversationId: string, limit = 100) => this.raw<MessageView[]>(`/conversations/${conversationId}/messages?limit=${limit}`);
   sendMessage = (conversationId: string, body: string) => this.post<MessageView>(`/conversations/${conversationId}/messages`, { body });
 
-  realtime(onEvent: (event: RealtimeEvent) => void): WebSocket {
+  realtime(onEvent: (event: RealtimeEvent) => void): RealtimeConnection {
     if (!this.accessToken) throw new RelayError(401, "Login is required");
     const url = new URL(this.baseUrl);
     url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
@@ -101,4 +127,3 @@ export class MultiplayerClient {
 }
 
 export * from "@relay/shared";
-

@@ -36,6 +36,60 @@ SDK (@relay/sdk) ── HTTPS / WebSocket ── Fastify API
 
 This is one deployable backend. Redis and microservices are not required.
 
+## Build without a backend (mock mode)
+
+Use `@relay/mock` while building an application's UI before a Relay server is
+available. It implements the same client contract as the real SDK, but keeps
+everything in memory inside the application process.
+
+```ts
+import { createMockRelay } from "@relay/mock";
+import type { MultiplayerClientContract } from "@relay/sdk";
+
+const mockBackend = createMockRelay();
+export const relay: MultiplayerClientContract = mockBackend.createClient();
+```
+
+Create additional clients from the same `mockBackend` to simulate other users:
+
+```ts
+const hasan = mockBackend.createClient();
+const jordan = mockBackend.createClient();
+
+await hasan.signup({
+  username: "hasan",
+  displayName: "Hasan",
+  email: "hasan@example.test",
+  password: "password123",
+});
+await jordan.signup({
+  username: "jordan",
+  displayName: "Jordan",
+  email: "jordan@example.test",
+  password: "password123",
+});
+
+const app = await hasan.createApp("Pokemon Draft");
+const invite = await hasan.invite(app.id, "@jordan");
+await jordan.acceptInvitation(invite.id);
+```
+
+When the hosted backend is ready, keep the application's
+`MultiplayerClientContract` dependency and replace only its construction:
+
+```ts
+import { MultiplayerClient } from "@relay/sdk";
+
+export const relay: MultiplayerClientContract = new MultiplayerClient({
+  baseUrl: "https://relay-api.example.com",
+});
+```
+
+Mock mode is a development placeholder, not a small production server. It does
+not communicate between devices, persists nothing after the process reloads,
+and keeps test passwords as plain text in memory. Never use it for production
+or security testing.
+
 ## Quick start with Docker
 
 Requirements: Node.js 20+ and Docker with Compose.
@@ -170,6 +224,7 @@ It verifies authentication and refresh replay protection, application authorizat
 apps/api          Fastify API, Drizzle schema, migration runner, integration tests
 apps/cli          Commander CLI and local credential/config handling
 packages/sdk      Shared HTTP and WebSocket client
+packages/mock     In-memory SDK-compatible backend placeholder
 packages/shared   Wire types and small domain helpers
 docs              Architecture and operating notes
 ```
@@ -183,4 +238,3 @@ docs              Architecture and operating notes
 - The repository-aware `repo init` wedge is the next milestone after the two-computer test is proven.
 
 Do not add Redis or split services until a real scaling need appears.
-
