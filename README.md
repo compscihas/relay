@@ -116,6 +116,17 @@ npm run dev
 
 Use a random `JWT_SECRET` of at least 32 characters outside local development. Do not commit `.env`.
 
+For a backend host, use the production Compose file. It requires generated
+database and JWT secrets, keeps PostgreSQL off the host network, binds the API
+to loopback for a TLS reverse proxy, and restarts services after a reboot:
+
+```bash
+cp .env.production.example .env
+# Replace both placeholder secrets in .env before continuing.
+docker compose -f docker-compose.prod.yml up -d --build
+curl http://127.0.0.1:3000/health
+```
+
 ## CLI walkthrough
 
 During development, run the CLI through the workspace:
