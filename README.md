@@ -95,6 +95,20 @@ not communicate between devices, persists nothing after the process reloads,
 and keeps test passwords as plain text in memory. Never use it for production
 or security testing.
 
+The default SDK entry uses the browser's built-in `WebSocket`; website users do
+not install a WebSocket dependency. Node clients that must support runtimes
+without a global WebSocket can use the separate Node adapter:
+
+```ts
+import { MultiplayerClient } from "@relay/sdk";
+import { nodeSocketFactory } from "@relay/sdk/node";
+
+const relay = new MultiplayerClient({
+  baseUrl: "https://relay.hasyousuf.com",
+  socketFactory: nodeSocketFactory,
+});
+```
+
 ## Quick start with Docker
 
 Requirements: Node.js 20+ and Docker with Compose.

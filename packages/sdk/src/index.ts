@@ -1,11 +1,19 @@
-import WebSocket from "ws";
 import type { ApplicationView, AuthResult, AuthTokens, ConversationView, MessageView, RealtimeEvent, UserView } from "@relay/shared";
+
+export interface RelaySocket {
+  close(code?: number, reason?: string): void;
+  onMessage(listener: (data: unknown) => void): void;
+  onError(listener: (error: Error) => void): void;
+}
+
+export type RelaySocketFactory = (url: string) => RelaySocket;
 
 export interface RelayClientOptions {
   baseUrl: string;
   accessToken?: string;
   refreshToken?: string;
   onTokens?: (tokens: AuthTokens) => void | Promise<void>;
+  socketFactory?: RelaySocketFactory;
 }
 
 export interface RealtimeConnection {
@@ -38,17 +46,42 @@ export class RelayError extends Error {
   constructor(public readonly status: number, message: string) { super(message); }
 }
 
+export function browserSocketFactory(url: string): RelaySocket {
+  const Socket = globalThis.WebSocket;
+  if (typeof Socket !== "function") {
+    throw new RelayError(500, "WebSocket is unavailable in this runtime. Use @relay/sdk/node or provide socketFactory.");
+  }
+  const socket = new Socket(url);
+  return {
+    close: (code, reason) => socket.close(code, reason),
+    onMessage: (listener) => socket.addEventListener("message", (event) => listener(event.data)),
+    onError: (listener) => socket.addEventListener("error", () => listener(new Error("Relay WebSocket connection failed"))),
+  };
+}
+
+async function socketDataToText(data: unknown): Promise<string> {
+  if (typeof data === "string") return data;
+  if (data instanceof ArrayBuffer) return new TextDecoder().decode(data);
+  if (ArrayBuffer.isView(data)) return new TextDecoder().decode(data);
+  if (data && typeof (data as { text?: unknown }).text === "function") {
+    return (data as { text(): Promise<string> }).text();
+  }
+  return String(data);
+}
+
 export class MultiplayerClient implements MultiplayerClientContract {
   private accessToken?: string;
   private refreshToken?: string;
   private readonly baseUrl: string;
   private readonly onTokens?: RelayClientOptions["onTokens"];
+  private readonly socketFactory: RelaySocketFactory;
 
   constructor(options: RelayClientOptions) {
     this.baseUrl = options.baseUrl.replace(/\/$/, "");
     this.accessToken = options.accessToken;
     this.refreshToken = options.refreshToken;
     this.onTokens = options.onTokens;
+    this.socketFactory = options.socketFactory ?? browserSocketFactory;
   }
 
   private async raw<T>(path: string, init: RequestInit = {}, retry = true): Promise<T> {
@@ -120,9 +153,16 @@ export class MultiplayerClient implements MultiplayerClientContract {
     url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
     url.pathname = `${url.pathname.replace(/\/$/, "")}/realtime`;
     url.searchParams.set("token", this.accessToken);
-    const socket = new WebSocket(url);
-    socket.on("message", (data) => onEvent(JSON.parse(data.toString()) as RealtimeEvent));
-    return socket;
+    const socket = this.socketFactory(url.toString());
+    socket.onMessage(async (data) => onEvent(JSON.parse(await socketDataToText(data)) as RealtimeEvent));
+    const connection: RealtimeConnection = {
+      close: (code, reason) => socket.close(code, reason),
+      on: (_event, listener) => {
+        socket.onError(listener);
+        return connection;
+      },
+    };
+    return connection;
   }
 }
 

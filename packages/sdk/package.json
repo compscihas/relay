@@ -4,10 +4,14 @@
   "type": "module",
   "main": "dist/index.js",
   "types": "src/index.ts",
-  "exports": { ".": { "types": "./src/index.ts", "default": "./dist/index.js" } },
+  "exports": {
+    ".": { "types": "./src/index.ts", "default": "./dist/index.js" },
+    "./node": { "types": "./src/node.ts", "default": "./dist/node.js" }
+  },
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
   },
   "dependencies": {
     "@relay/shared": "0.1.0",

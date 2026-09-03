@@ -3,6 +3,7 @@ import { createInterface } from "node:readline/promises";
 import { stdin, stdout } from "node:process";
 import { Command } from "commander";
 import { MultiplayerClient, RelayError, type ConversationView, type MessageView } from "@relay/sdk";
+import { nodeSocketFactory } from "@relay/sdk/node";
 import { clearTokens, loadCliConfig, saveCliConfig, saveTokens } from "./config.js";
 
 const program = new Command().name("relay").description("Make your application multiplayer in minutes.").version("0.1.0");
@@ -36,7 +37,7 @@ async function promptSecret(label: string): Promise<string> {
 
 async function context(requireApp = false) {
   const config = await loadCliConfig();
-  const client = new MultiplayerClient({ ...config, onTokens: saveTokens });
+  const client = new MultiplayerClient({ ...config, onTokens: saveTokens, socketFactory: nodeSocketFactory });
   if (requireApp && !config.currentAppId) throw new Error("No current application. Run `relay app use <id>` or create an app first.");
   return { config, client, appId: config.currentAppId! };
 }
