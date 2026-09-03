@@ -37,5 +37,13 @@ services:
       retries: 10
       start_period: 20s
 
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run --token ${CLOUDFLARED_TUNNEL_TOKEN:?Set CLOUDFLARED_TUNNEL_TOKEN in .env}
+    depends_on:
+      api:
+        condition: service_healthy
+
 volumes:
   relay_postgres:

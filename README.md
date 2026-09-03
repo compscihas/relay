@@ -127,6 +127,13 @@ docker compose -f docker-compose.prod.yml up -d --build
 curl http://127.0.0.1:3000/health
 ```
 
+To publish the API without opening router ports, create a remotely managed
+Cloudflare Tunnel and put its private connector token in `.env` as
+`CLOUDFLARED_TUNNEL_TOKEN`. Configure its public hostname as
+`relay.hasyousuf.com` and its service URL as `http://api:3000`. The
+`cloudflared` service in `docker-compose.prod.yml` starts after the API becomes
+healthy and reconnects automatically after a reboot.
+
 ## CLI walkthrough
 
 During development, run the CLI through the workspace:
